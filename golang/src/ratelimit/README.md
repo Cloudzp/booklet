@@ -1,3 +1,4 @@
+````go
 package main
 
 import (
@@ -46,3 +47,5 @@ func consumer() {
 		<-bus
 	}
 }
+
+````
