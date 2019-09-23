@@ -1,0 +1,35 @@
+apiVersion: ceph.rook.io/v1
+kind: CephCluster
+metadata:
+  annotations:
+    kubectl.kubernetes.io/last-applied-configuration: |
+      {"apiVersion":"ceph.rook.io/v1","kind":"CephCluster","metadata":{"annotations":{},"name":"rook-ceph","namespace":"rook-ceph"},"spec":{"cephVersion":{"allowUnsupported":true,"image":"ceph/ceph:v14.2.1-20190430"},"dashboard":{"enabled":true},"dataDirHostPath":"/home/rook","mon":{"allowMultiplePerNode":true,"count":1},"network":{"hostNetwork":false},"rbdMirroring":{"workers":0},"storage":{"config":{"databaseSizeMB":"","journalSizeMB":"","osdsPerDevice":"1"},"deviceFilter":null,"directories":[{"path":"/home/rook"}],"useAllDevices":false,"useAllNodes":true}}}
+  finalizers:
+    - cephcluster.ceph.rook.io
+  name: rook-ceph
+  namespace: rook-ceph
+spec:
+  cephVersion:
+    allowUnsupported: true
+    image: ceph/ceph:v14.2.1-20190430
+  dashboard:
+    enabled: true
+  dataDirHostPath: /home/rook
+  mon:
+    allowMultiplePerNode: true
+    count: 1
+    preferredCount: 0
+  network:
+    hostNetwork: false
+  rbdMirroring:
+    workers: 0
+  storage:
+    config:
+      databaseSizeMB: ""
+      journalSizeMB: ""
+      osdsPerDevice: "1"
+    directories:
+      - config: null
+        path: /home/rook
+    useAllDevices: false
+    useAllNodes: true

@@ -1,0 +1,260 @@
+
+# -------------------------- icharge -----------------------
+- type: log
+  paths:
+    - /var/irain-app/logs/icharge/icharge.log
+  tags: ["icharge"]
+  #exclude_lines: ['^DBG']
+  #exclude_files: ['.gz$']
+  include_lines: ['^\{']
+  fields:
+    log_topic: "topic.icharge"
+# -------------------------- knernel-service-----------------------
+- type: log
+  paths:
+    - /var/irain-app/logs/kernel-service/kernel.log
+  tags: ["kernelservice"]
+  #exclude_lines: ['^DBG']
+  #exclude_files: ['.gz$']
+  include_lines: ['^\{']
+  fields:
+    log_topic: "topic.kernelservice"
+
+# -------------------------- parkinfo-----------------------
+- type: log
+  paths:
+    - /var/irain-app/logs/parkinfo/ParkInfo.log
+  tags: ["parkinfo"]
+  include_lines: ['^\{']
+  fields:
+    log_topic: "topic.parkinfo"
+
+---
+apiVersion: extensions/v1beta1
+kind: DaemonSet
+metadata:
+  labels:
+    k8s-app: filebeat
+  name: filebeat
+  namespace: kube-ops
+spec:
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      k8s-app: filebeat
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        k8s-app: filebeat
+    spec:
+      containers:
+        - args:
+            - -c
+            - /etc/filebeat.yml
+            - -e
+          env:
+            - name: ELASTICSEARCH_HOST
+              value: 172.16.4.112
+            - name: ELASTICSEARCH_PORT
+              value: "9200"
+            - name: ELASTICSEARCH_USERNAME
+              value: elastic
+            - name: ELASTICSEARCH_PASSWORD
+              value: changeme
+            - name: ELASTIC_CLOUD_ID
+            - name: ELASTIC_CLOUD_AUTH
+          image: docker.elastic.co/beats/filebeat:6.5.4
+          imagePullPolicy: IfNotPresent
+          name: filebeat
+          resources:
+            limits:
+              memory: 200Mi
+            requests:
+              cpu: 100m
+              memory: 100Mi
+          securityContext:
+            runAsUser: 0
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          volumeMounts:
+            - mountPath: /etc/filebeat.yml
+              name: config
+              readOnly: true
+              subPath: filebeat.yml
+            - mountPath: /usr/share/filebeat/inputs.d
+              name: inputs
+              readOnly: true
+            - mountPath: /usr/share/filebeat/data
+              name: data
+            - mountPath: /var/lib/docker/containers
+              name: varlibdockercontainers
+              readOnly: true
+            - mountPath: /var/irain-app/logs
+              name: logdata
+              readOnly: true
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext: {}
+      serviceAccount: filebeat
+      serviceAccountName: filebeat
+      terminationGracePeriodSeconds: 30
+      volumes:
+        - configMap:
+            defaultMode: 384
+            name: filebeat-config
+          name: config
+        - hostPath:
+            path: /home/data1/docker_storage/docker/containers
+            type: ""
+          name: varlibdockercontainers
+        - configMap:
+            defaultMode: 384
+            name: filebeat-inputs
+          name: inputs
+        - hostPath:
+            path: /var/lib/filebeat-data
+            type: DirectoryOrCreate
+          name: data
+        - hostPath:
+            path: /home/data1/kubernetes/logs
+            type: DirectoryOrCreate
+          name: logdata
+  templateGeneration: 4
+  updateStrategy:
+    type: OnDelete
+---
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: filebeat-config
+  namespace: kube-ops
+  labels:
+    k8s-app: filebeat
+data:
+  filebeat.yml: >+
+    filebeat.config:
+      inputs:
+        # Mounted `filebeat-inputs` configmap:
+        path: ${path.config}/inputs.d/*.yml
+        # Reload inputs configs as they change:
+        reload.enabled: false
+      modules:
+        path: ${path.config}/modules.d/*.yml
+        # Reload module configs as they change:
+        reload.enabled: false
+
+    # To enable hints based autodiscover, remove `filebeat.config.inputs`
+    configuration and uncomment this:
+
+    #filebeat.autodiscover:
+
+    #  providers:
+
+    #    - type: kubernetes
+
+    #      hints.enabled: true
+
+
+    processors:
+      - add_cloud_metadata:
+
+    cloud.id: ${ELASTIC_CLOUD_ID}
+
+    cloud.auth: ${ELASTIC_CLOUD_AUTH}
+
+    output.kafka:
+      hosts: ["1172.16.4.112:9092"]
+      topic: '%{[fields.log_topic]}'
+      keep_alive: 3000
+---
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: filebeat-inputs
+  namespace: kube-ops
+  labels:
+    k8s-app: filebeat
+data:
+  kubernetes.yml: |-
+    # -------------------------- icharge -----------------------
+    - type: log
+      paths:
+        - /var/irain-app/logs/icharge/icharge.log
+      tags: ["icharge"]
+      #exclude_lines: ['^DBG']
+      #exclude_files: ['.gz$']
+      include_lines: ['^\{']
+      fields:
+        log_topic: "topic.icharge"
+    # -------------------------- knernel-service-----------------------
+    - type: log
+      paths:
+        - /var/irain-app/logs/kernel-service/*kernel.log
+      tags: ["kernelservice"]
+      #exclude_lines: ['^DBG']
+      #exclude_files: ['.gz$']
+      include_lines: ['^\{']
+      fields:
+        log_topic: "topic.kernelservice"
+
+    # -------------------------- parkinfo-----------------------
+    - type: log
+      paths:
+        - /var/irain-app/logs/parkinfo/ParkInfo.log
+      tags: ["parkinfo"]
+      include_lines: ['^\{']
+      fields:
+        log_topic: "topic.parkinfo"
+
+    # -------------------------- logicserver-----------------------
+    - type: log
+      paths:
+        - /var/irain-app/logs/logicserver/app.log
+      tags: ["logicserver-k8s"]
+      include_lines: ['^\{']
+      fields:
+        log_topic: "topic.logicserver"
+---
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: filebeat
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: filebeat
+subjects:
+  - kind: ServiceAccount
+    name: filebeat
+    namespace: kube-ops
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    k8s-app: filebeat
+  name: filebeat
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - namespaces
+      - pods
+    verbs:
+      - get
+      - watch
+      - list
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  labels:
+    k8s-app: filebeat
+  name: filebeat
+  namespace: kube-ops
+
+
