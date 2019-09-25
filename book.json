@@ -7,9 +7,6 @@
   "styles": {
     "website": "./styles/website.css"
   },
-  "structure": {
-    "readme": "whoami.md"
-  },
   "links": {
     "sidebar": {
       "GitHub": "https://github.com/Cloudzp"
