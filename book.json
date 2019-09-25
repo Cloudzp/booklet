@@ -8,7 +8,7 @@
     "website": "./styles/website.css"
   },
   "structure": {
-    "readme": "README.md"
+    "readme": "whoami.md"
   },
   "links": {
     "sidebar": {
