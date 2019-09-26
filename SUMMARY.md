@@ -39,6 +39,13 @@
 * [docker基础](docker/base/README.md)
 
 ---
+
+## linux学习笔记
+* [iptable](linux/iptable/README.md)
+* [软件仓库](linux/repo/REPO.md) 
+* [常用工具](linux/tool/zsh.md)
+ 
+---
 ## 数据库学习笔记  
 * [数据库基础](db/mysql.md)
 
