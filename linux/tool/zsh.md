@@ -4,6 +4,7 @@
 > [install oh-my-zsh ]https://github.com/robbyrussell/oh-my-zsh
 >
 > [install plugin autosuggestions]https://github.com/zsh-users/zsh-autosuggestions/blob/master/INSTALL.md
+
 ## Install zsh and oh-my-zsh
 ```
 $ apt install zsh
