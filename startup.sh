@@ -2,4 +2,4 @@
 ## install plugin
 ## gitbook install ./
 ## start up server
-gitbook serve
+gitbook serve --port=8080
